@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Your Feedback</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Stars -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Link our Magic Config File -->
+    <script src="config.js"></script>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen font-sans">
+
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md text-center border border-gray-100 transition-all">
+            
+            <!-- Dynamic Clinic Info -->
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fa-solid fa-stethoscope text-2xl text-blue-600"></i>
+            </div>
+            
+            <h1 class="text-xl font-bold text-gray-800 mb-1" id="displayClinicName">Loading...</h1>
+            <p class="text-gray-500 text-sm mb-6" id="displayDoctorName">Loading...</p>
+
+            <p class="text-gray-700 font-medium mb-4 text-lg">How was your experience today?</p>
+
+            <!-- Star Rating Row -->
+            <div class="flex justify-center gap-3 mb-6" id="star-container">
+                <button onclick="handleStarClick(1)" class="star-btn text-4xl text-gray-300 hover:text-yellow-400 hover:scale-110 transition-all"><i class="fa-solid fa-star"></i></button>
+                <button onclick="handleStarClick(2)" class="star-btn text-4xl text-gray-300 hover:text-yellow-400 hover:scale-110 transition-all"><i class="fa-solid fa-star"></i></button>
+                <button onclick="handleStarClick(3)" class="star-btn text-4xl text-gray-300 hover:text-yellow-400 hover:scale-110 transition-all"><i class="fa-solid fa-star"></i></button>
+                <button onclick="handleStarClick(4)" class="star-btn text-4xl text-gray-300 hover:text-yellow-400 hover:scale-110 transition-all"><i class="fa-solid fa-star"></i></button>
+                <button onclick="handleStarClick(5)" class="star-btn text-4xl text-gray-300 hover:text-yellow-400 hover:scale-110 transition-all"><i class="fa-solid fa-star"></i></button>
+            </div>
+
+           <!-- SECTION 1: Positive Feedback (4-5 Stars) Smart Jugaad -->
+            <div id="positive-section" class="hidden bg-green-50 p-4 rounded-xl border border-green-200 text-left mt-4">
+                <p class="text-green-800 font-semibold mb-3 text-sm text-center">🎉 Thank you <span id="display-patient-name" class="font-bold"></span>! Tap a comment to copy & post on Google:</p>
+                <div class="space-y-3" id="dynamic-comments-container">
+                    <!-- JavaScript yahan automatic lambe comments daal dega -->
+                </div>
+            </div>
+
+            <!-- SECTION 2: Negative Feedback (1-3 Stars) -->
+            <div id="negative-section" class="hidden text-left mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">We are sorry to hear that. Please let us know what went wrong:</label>
+                <textarea id="feedback-text" rows="3" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm placeholder-gray-400 mb-4" placeholder="Type your issue here..."></textarea>
+                <button onclick="submitNegativeFeedback()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3 rounded-xl transition-colors shadow-md">
+                    Send to Clinic Manager
+                </button>
+            </div>
+
+            <!-- Success Card -->
+            <div id="thank-you-card" class="hidden text-center py-6 mt-4">
+                <i class="fa-solid fa-circle-check text-5xl text-green-500 mb-3"></i>
+                <h3 class="text-lg font-bold text-gray-800">Feedback Sent Securely</h3>
+                <p class="text-gray-500 text-sm mt-1">Our team will look into this immediately.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="text-center py-4 text-xs text-gray-400" id="footer-branding">
+        Powered by SmartReview
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // 1. PAGE LOAD HOTE HI CONFIG & URL DATA UTHAO
+        const urlParams = new URLSearchParams(window.location.search);
+        // URL se patient ka naam nikalna (agar link me naam nahi hai, toh 'there' use hoga)
+        const patientName = urlParams.get('name') || ""; 
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("displayClinicName").innerText = APP_CONFIG.clinicName;
+            document.getElementById("displayDoctorName").innerText = APP_CONFIG.doctorName;
+            
+            // Patient ka naam upar message me dikhane ke liye
+            if(patientName) {
+                document.getElementById("display-patient-name").innerText = patientName;
+            }
+        });
+
+        let selectedRating = 0;
+
+        function handleStarClick(rating) {
+            selectedRating = rating;
+            
+            const stars = document.querySelectorAll('.star-btn');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.remove('text-gray-300');
+                    star.classList.add('text-yellow-400');
+                } else {
+                    star.classList.remove('text-yellow-400');
+                    star.classList.add('text-gray-300');
+                }
+            });
+
+            if (rating >= 4) {
+                document.getElementById('negative-section').classList.add('hidden');
+                document.getElementById('positive-section').classList.remove('hidden');
+                
+                // 2. GENERATE DYNAMIC LONG REVIEWS
+                generateLongReviews();
+            } else {
+                document.getElementById('positive-section').classList.add('hidden');
+                document.getElementById('negative-section').classList.remove('hidden');
+            }
+        }
+
+        function generateLongReviews() {
+            const container = document.getElementById("dynamic-comments-container");
+            const clinic = APP_CONFIG.clinicName;
+            const docName = APP_CONFIG.doctorName;
+            
+            // Yahan ham patient ke naam aur clinic ke naam ke sath 4-5 lines ke reviews bana rahe hain
+            const review1 = `My name is ${patientName} and I recently visited ${clinic}. I am extremely satisfied with the treatment provided by ${docName}. The staff was very polite, the clinic was highly hygienic, and the whole process was very smooth from start to finish. I highly recommend them to anyone looking for genuine care and proper guidance.`;
+            
+            const review2 = `I, ${patientName}, had a great experience at ${clinic}. ${docName} listens to all the problems very patiently and explains the treatment details clearly. It's rare to find such a dedicated and professional clinic these days. The waiting time was minimal and the service was excellent. Five stars from my side!`;
+
+            // HTML me inject karna
+            container.innerHTML = `
+                <button onclick="copyAndRedirect('${review1.replace(/'/g, "\\'")}')" class="w-full text-left bg-white p-3 rounded-lg border text-sm text-gray-700 hover:bg-gray-50 shadow-sm relative group transition-all">
+                    <span class="block pr-6 line-clamp-3">${review1}</span>
+                    <i class="fa-regular fa-copy text-blue-500 absolute top-4 right-3 opacity-50 group-hover:opacity-100 text-lg"></i>
+                </button>
+                <button onclick="copyAndRedirect('${review2.replace(/'/g, "\\'")}')" class="w-full text-left bg-white p-3 rounded-lg border text-sm text-gray-700 hover:bg-gray-50 shadow-sm relative group transition-all">
+                    <span class="block pr-6 line-clamp-3">${review2}</span>
+                    <i class="fa-regular fa-copy text-blue-500 absolute top-4 right-3 opacity-50 group-hover:opacity-100 text-lg"></i>
+                </button>
+            `;
+        }
+
+        function copyAndRedirect(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Comment copied successfully! Redirecting you to Google to paste it.");
+                window.location.href = APP_CONFIG.gmbLink;
+            });
+        }
+
+        function submitNegativeFeedback() {
+            const reviewText = document.getElementById('feedback-text').value;
+            if(!reviewText.trim()) return alert("Please type your concern before submitting.");
+
+            document.getElementById('negative-section').classList.add('hidden');
+            document.getElementById('star-container').classList.add('opacity-50', 'pointer-events-none'); 
+            document.getElementById('thank-you-card').classList.remove('hidden');
+
+            console.log("Negative Feedback Saved:", { rating: selectedRating, issue: reviewText, patient: patientName });
+        }
+    </script>
+</body>
+</html>
